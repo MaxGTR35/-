@@ -113,7 +113,6 @@ print("%d rules generated in %f seconds" % (N,time()-time_start))
 # YOUR CODE HERE
 
 def validate_rules(facts, rules):
-
 	for i in facts:
 		for j in rules:
 			mas = []
@@ -122,26 +121,24 @@ def validate_rules(facts, rules):
 				mas.append(value)
 			for key in mas[0].keys():
 				keys.append(key)
+
 			if keys[0] == 'or':
 				if i in mas[0]['or']:
 					facts.append(mas[1])
-			if keys[0] == "and":
+
+			elif keys[0] == 'and':
 				if (set(facts) & set(mas[0]['and'])) == set(facts):
 					facts.append(mas[1])
-			if keys[0] == 'not':
-				if facts not in mas[0]['not']:
+
+			elif keys[0] == 'not':
+				if i not in set(mas[0]['not']):
 					facts.append(mas[1])
 	return facts
-
 a = generate_rand_facts(10, 2)
 b = generate_simple_rules(10, 4, 5, ["not"])
 print(a)
 print(b)
-
 print(validate_rules(a,b))
 #check facts vs rules
 time_start = time()
-
-# YOUR CODE HERE
-
 print("%d facts validated vs %d rules in %f seconds" % (M,N,time()-time_start))
