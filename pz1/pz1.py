@@ -94,24 +94,6 @@ def generate_rand_facts(code_max, M):
 		facts.append( randint(0, code_max) )
 	return facts
 
-
-# #samples:
-# print(generate_simple_rules(100, 4, 10))
-# #print(generate_random_rules(100, 4, 10))
-# #print(generate_stairway_rules(100, 4, 10, ["or"]))
-# #print(generate_ring_rules(100, 4, 10, ["or"]))
-# print(generate_rand_facts(100, 4))
-# #generate rules and facts and check time
-# time_start = time()
-# N = 100000
-# M = 1000
-# rules = generate_simple_rules(100, 4, N)
-# facts = generate_rand_facts(100, M)
-# print("%d rules generated in %f seconds" % (N,time()-time_start))
-
-#load and validate rules
-# YOUR CODE HERE
-
 def validate_rules(facts, rules):
 	for j in rules:
 		mas = []
@@ -133,13 +115,20 @@ def validate_rules(facts, rules):
 		elif keys[0] == 'not':
 			if len(set(facts) & set(mas[0]['not'])) == 0:
 				facts.append(mas[1])
-	return facts
+	return set(facts)
 
-a = generate_rand_facts(100, 4)
-b = generate_simple_rules(100, 4, 10)
-print(a)
-print(b)
+a = generate_rand_facts(1000, 1000)
+b = generate_simple_rules(1000, 4, 10000)
+
+# a = [1,2,3]
+#
+# b = [
+# 	{'if': {'and': [1, 2, 100]}, 'then': 1000},
+#     {'if': {'not': [1001]}, 'then': 1002},
+# 	{'if': {'or': [1, 2, 100]}, 'then': 1001},
+# ]
+time_start = time()
 print(validate_rules(a,b))
 
 time_start = time()
-print("%d facts validated vs %d rules in %f seconds" % (4,10,time()-time_start))
+print("%d facts validated vs %d rules in %f seconds" % (100,1000,time()-time_start))
