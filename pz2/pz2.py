@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from time import time
-
+from sklearn.model_selection import train_test_split
 
 # generates x and y numpy arrays for
 # y = a*x + b + a * noise
@@ -149,47 +149,183 @@ def polynomial_regression(filename, degree):
 # x and y are both vectors
 
 def gradient_descent_step(dJ, theta, alpha):
-    print("your code goes here")
-
-    return (theta)
+    theta = theta - alpha * dJ
+    return theta
 
 
 # get gradient over all xy dataset - gradient descent
 def get_dJ(x, y, theta):
-    theta_new = theta
-    print("your code goes here - calculate new theta")
-    return theta_new
+    m = len(y)  # Number of examples
+    predictions = x.dot(theta)
+    error = predictions - y
+    dJ = (1 / m) * x.T.dot(error)
+    return dJ
 
 
 # get gradient over all minibatch of size M of xy dataset - minibatch gradient descent
 def get_dJ_minibatch(x, y, theta, M):
-    theta_new = theta
-    print("your code goes here - calculate new theta")
-    return theta_new
+    indices = np.random.choice(range(len(y)), M, replace=False)
+    x_batch = x[indices]
+    y_batch = y[indices]
+    return get_dJ(x_batch, y_batch, theta)
 
 
 # get gradient over all minibatch of single sample from xy dataset - stochastic gradient descent
 def get_dJ_sgd(x, y, theta):
-    theta_new = theta
-    print("your code goes here - calculate new theta")
-    return theta_new
+    i = np.random.randint(0, len(y))
+    x_i = x[i:i + 1]
+    y_i = y[i:i + 1]
+    return get_dJ(x_i, y_i, theta)
+
+def read_data_from_file(filename):
+    # Загрузка данных из файла
+    data = np.loadtxt(filename, delimiter=',')
+    # Первый столбец - y, остальные - x
+    y = data[:, 0]
+    x = data[:, 1:]
+    # Добавление столбца единиц к x для учета свободного члена (интерцепта)
+    x = np.hstack([np.ones((x.shape[0], 1)), x])
+    return x, y
+def minimize(filename, L, alpha, get_gradient_func):
+    x, y = read_data_from_file(filename)
+    n = x.shape[1]  # Количество признаков
+    theta_initial = np.zeros(n)
+    theta = np.copy(theta_initial)
+    J_history = []
+
+    for i in range(L):
+        dJ = get_gradient_func(x, y, theta)
+        theta = gradient_descent_step(dJ, theta, alpha)
+        J = np.mean((x.dot(theta) - y) ** 2) / 2
+        J_history.append(J)
+
+    # Строим график J(theta) по итерациям
+    plt.plot(J_history, label=f'Alpha {alpha}')
+    plt.xlabel('Итерация')
+    plt.ylabel('J(theta)')
+    plt.title('Функция стоимости по итерациям')
+    plt.legend()
+    plt.show()
+
+    return theta
 
 
-# try each of gradient decsent (complete, minibatch, sgd) for varius alphas
-# L - number of iterations
-# plot results as J(i)
-def minimize(theta, x, y, L):
-    # n - number of samples in learning subset, m - ...
-    n = 12345  # <-- calculate it properly!
-    theta = np.zeros(n)  # you can try random initialization
-    dJ = np.zeros(n)
-    for i in range(0, L):
-        theta = get_dJ(x, y, theta)  # here you should try different gradient descents
-        J = 0  # here you should calculate it properly
-    # and plot J(i)
-    print("your code goes here")
-    return
+def generate_and_split_data(degree, sizes):
+    results = []
+    for size in sizes:
+        # Генерация данных
+        a = np.random.randn(degree + 1)  # Случайные коэффициенты для полинома
+        noise = 0.1
+        filename = f"poly_data_{size}.csv"
+        generate_poly(a, degree, noise, filename, size)
 
+        # Чтение и разбиение данных
+        data = np.loadtxt(filename, delimiter=',')
+        X, y = data[:, :-1], data[:, -1]
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4, random_state=42)
+        X_test, X_valid, y_test, y_valid = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+        results.append((X_train, X_test, X_valid, y_train, y_test, y_valid))
+    return results
+sizes = range(10, 101, 10)
+data_splits = generate_and_split_data(3, sizes)
+
+def compute_cost(X, y, theta):
+    m = len(y)
+    predictions = X.dot(theta)
+    cost = (1/2*m) * np.sum(np.square(predictions-y))
+    return cost
+
+
+def polynomial_features(X, degree):
+    X_poly = X
+    for i in range(2, degree + 1):
+        X_poly = np.hstack((X_poly, np.power(X[:, 0:1], i)))
+    return X_poly
+
+
+def train_and_evaluate(X_train, X_test, y_train, y_test, degrees, L, alpha):
+    J_train = []
+    J_test = []
+
+    for degree in degrees:
+        # Генерация полиномиальных признаков
+        X_train_poly = polynomial_features(X_train, degree)
+        X_test_poly = polynomial_features(X_test, degree)
+
+        # Добавление столбца единиц к X
+        X_train_poly = np.hstack([np.ones((X_train_poly.shape[0], 1)), X_train_poly])
+        X_test_poly = np.hstack([np.ones((X_test_poly.shape[0], 1)), X_test_poly])
+
+        # Обучение модели
+        theta_initial = np.zeros(X_train_poly.shape[1])
+        theta_optimized = minimize(theta_initial, X_train_poly, y_train, L, alpha, get_dJ)
+
+        # Вычисление стоимости
+        cost_train = compute_cost(X_train_poly, y_train, theta_optimized)
+        cost_test = compute_cost(X_test_poly, y_test, theta_optimized)
+
+        J_train.append(cost_train)
+        J_test.append(cost_test)
+
+    return J_train, J_test
+
+def minimize_with_prepared_data(X_train, y_train, X_test, y_test, L, alpha, get_gradient_func):
+    n = X_train.shape[1]  # Количество признаков
+    theta_initial = np.zeros(n)
+    J_history_train = []
+    J_history_test = []
+
+    for i in range(L):
+        dJ = get_gradient_func(X_train, y_train, theta_initial)
+        theta_initial = gradient_descent_step(dJ, theta_initial, alpha)
+        J_train = np.mean((X_train.dot(theta_initial) - y_train) ** 2) / 2
+        J_test = np.mean((X_test.dot(theta_initial) - y_test) ** 2) / 2
+        J_history_train.append(J_train)
+        J_history_test.append(J_test)
+
+    # Строим графики J(theta) по итерациям
+    plt.plot(J_history_train, label='Train Cost', alpha=0.75)
+    plt.plot(J_history_test, label='Test Cost', alpha=0.75)
+    plt.xlabel('Итерация')
+    plt.ylabel('J(theta)')
+    plt.title(f'Функция стоимости по итерациям, Alpha {alpha}')
+    plt.legend()
+    plt.show()
+
+    return theta_initial
+def train_and_evaluate_with_minimize(X_train, X_test, y_train, y_test, degrees, L, alpha):
+    J_train = []
+    J_test = []
+
+    for degree in degrees:
+        # Добавляем полиномиальные признаки
+        X_train_poly = polynomial_features(X_train, degree)
+        X_test_poly = polynomial_features(X_test, degree)
+
+        # Обучение модели и минимизация функции стоимости
+        theta_optimized = minimize_with_prepared_data(X_train_poly, y_train, X_test_poly, y_test, L, alpha, get_dJ)
+
+        # Вычисляем стоимость для оптимизированного theta
+        J_train.append(compute_cost(X_train_poly, y_train, theta_optimized))
+        J_test.append(compute_cost(X_test_poly, y_test, theta_optimized))
+
+    return J_train, J_test
+
+
+def experiment(sizes, data_splits, degrees, L, alpha):
+    for size, splits in zip(sizes, data_splits):
+        X_train, X_test, X_valid, y_train, y_test, y_valid = splits
+        J_train, J_test = train_and_evaluate_with_minimize(X_train, X_test, y_train, y_test, degrees, L, alpha)
+
+        # Визуализация min(J_train), min(J_test) в зависимости от степени полинома
+        plt.plot(degrees, J_train, label='Train Cost', marker='o')
+        plt.plot(degrees, J_test, label='Test Cost', marker='x')
+        plt.title(f'Model Evaluation for size={size}')
+        plt.xlabel('Degree of Polynomial')
+        plt.ylabel('Cost')
+        plt.legend()
+        plt.show()
 
 if __name__ == "__main__":
     generate_linear(1, -3, 1, 'linear.csv', 100)
@@ -202,21 +338,15 @@ if __name__ == "__main__":
     generate_poly([1, 2, 3], 2, 0.5, 'polynomial.csv')
     polynomial_regression("polynomial.csv", 2)
 
-    # ex2. find minimum with gradient descent
-    # 0. generate date with function above
-    # 1. shuffle data into train - test - valid
-    # 2. call minuimize(...) and plot J(i)
-    # 3. call check(theta1, theta2) to check results for optimal theta
-
+   # ex2.
+    filename = 'linear.csv'
+    alpha = 0.01
+    L = 1000
+    minimize(filename, L, alpha, get_dJ)
     # ex3. polinomial regression
-    # 0. generate date with function generate_poly for degree=3, use size = 10, 20, 30, ... 100
-    # for each size:
-    # 1. shuffle data into train - test - valid
-    # Now we're going to try different degrees of model to aproximate our data, set degree=1 (linear regression)
-    # 2. call minimize(...) and plot J(i)
-    # 3. call check(theta1, theta2) to check results for optimal theta
-    # 4. plot min(J_train), min(J_test) vs size: is it overfit or underfit?
-    #
-    # repeat 0-4 for degres = 2,3,4
+    sizes = range(10, 101, 10)
+    data_splits = generate_and_split_data(3, sizes)
+    degrees =[2,3,4]
+    experiment(sizes, data_splits, degrees, L, alpha)
 
     # ex3* the same with regularization
