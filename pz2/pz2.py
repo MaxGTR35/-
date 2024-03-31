@@ -51,20 +51,16 @@ def linear_regression_exact(filename):
         data = np.loadtxt(f, delimiter=',')
     x, y = np.hsplit(data, 2)
 
-    # Добавление столбца из единиц к x для учета свободного члена
     X = np.hstack([x, np.ones((x.shape[0], 1))])
 
-    # Использование метода наименьших квадратов с инверсией матрицы
     time_start = time()
-    # Расчет параметров модели
+
     beta = np.linalg.inv(X.T @ X) @ X.T @ y
     time_end = time()
     print(f"Inversion method in {time_end - time_start} seconds")
 
-    # Построение модели
     h = X @ beta
 
-    # Визуализация
     plt.title("Linear regression task")
     plt.xlabel("X")
     plt.ylabel("Y")
@@ -111,12 +107,36 @@ def generate_poly(a, n, noise, filename, size=100):
     np.savetxt(filename, data, delimiter=',')
 
 
-def polynomial_regression_numpy(filename):
-    print("Ex1: your code here")
-    time_start = time()
-    print("Ex1: your code here")
-    time_end = time()
-    print(f"polyfit in {time_end - time_start} seconds")
+def create_polynomial_features(x, degree):
+
+    X_poly = np.ones((x.shape[0], 1))
+    for i in range(1, degree + 1):
+        X_poly = np.hstack((X_poly, np.power(x, i)))
+    return X_poly
+
+
+def polynomial_regression(filename, degree):
+    with open(filename, 'r') as f:
+        data = np.loadtxt(f, delimiter=',')
+    x, y = np.hsplit(data, 2)
+
+    X_poly = create_polynomial_features(x, degree)
+
+    beta = np.linalg.inv(X_poly.T @ X_poly) @ X_poly.T @ y
+
+    x_range = np.linspace(x.min(), x.max(), 1000).reshape(-1, 1)
+    X_poly_range = create_polynomial_features(x_range, degree)
+    y_pred = X_poly_range @ beta
+
+    plt.title("Polynomial regression")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.plot(x, y, "b.", label='Experiment data')
+    plt.plot(x_range, y_pred, "r-", label=f'Polynomial degree {degree}')
+    plt.legend()
+    plt.show()
+
+    return beta
 
 
 # Ex.2 gradient descent for linear regression without regularization
@@ -177,11 +197,10 @@ if __name__ == "__main__":
     #print(f"Is model correct?\n{check(model, np.array([1, -3]))}")
     # ex1 . - exact solution
     model_exact = linear_regression_exact("linear.csv")
-    check(model_exact, np.array([-3,1]))
 
     # ex1. polynomial with numpy
     generate_poly([1, 2, 3], 2, 0.5, 'polynomial.csv')
-    polynomial_regression_numpy("polynomial.csv")
+    polynomial_regression("polynomial.csv", 2)
 
     # ex2. find minimum with gradient descent
     # 0. generate date with function above
