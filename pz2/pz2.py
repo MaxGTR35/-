@@ -47,8 +47,33 @@ def linear_regression_numpy(filename):
 
 
 def linear_regression_exact(filename):
-    print("Ex1: your code here - exact solution usin invert matrix")
-    return
+    with open(filename, 'r') as f:
+        data = np.loadtxt(f, delimiter=',')
+    x, y = np.hsplit(data, 2)
+
+    # Добавление столбца из единиц к x для учета свободного члена
+    X = np.hstack([x, np.ones((x.shape[0], 1))])
+
+    # Использование метода наименьших квадратов с инверсией матрицы
+    time_start = time()
+    # Расчет параметров модели
+    beta = np.linalg.inv(X.T @ X) @ X.T @ y
+    time_end = time()
+    print(f"Inversion method in {time_end - time_start} seconds")
+
+    # Построение модели
+    h = X @ beta
+
+    # Визуализация
+    plt.title("Linear regression task")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.plot(x, y, "b.", label='experiment')
+    plt.plot(x, h, "r-", label='model')
+    plt.legend()
+    plt.show()
+
+    return beta
 
 
 def check(model, ground_truth):
@@ -148,11 +173,11 @@ def minimize(theta, x, y, L):
 
 if __name__ == "__main__":
     generate_linear(1, -3, 1, 'linear.csv', 100)
-    model = linear_regression_numpy("linear.csv")
-    print(f"Is model correct?\n{check(model, np.array([1, -3]))}")
+    #model = linear_regression_numpy("linear.csv")
+    #print(f"Is model correct?\n{check(model, np.array([1, -3]))}")
     # ex1 . - exact solution
-    # model_exact = linear_regression_exact("linear.csv")
-    # check(model_exact, np.array([-3,1]))
+    model_exact = linear_regression_exact("linear.csv")
+    check(model_exact, np.array([-3,1]))
 
     # ex1. polynomial with numpy
     generate_poly([1, 2, 3], 2, 0.5, 'polynomial.csv')
